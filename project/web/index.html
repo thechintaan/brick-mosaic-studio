@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Lego Mosaic Maker</title>
+    <link rel="stylesheet" href="/web/styles.css" />
+  </head>
+  <body>
+    <div class="top-rule"></div>
+    <div class="page-shell">
+      <aside class="sidebar">
+        <div class="brand-card module-shell">
+          <div class="module-lights" aria-hidden="true">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+          <p class="eyebrow">Brick Lab</p>
+          <h1>Lego Mosaic Maker</h1>
+          <p class="lede">
+            A tactile photo-to-brick studio with soft industrial controls, printable exports, and project-based builds.
+          </p>
+        </div>
+
+        <section class="panel stack module-shell">
+          <div class="panel-head">
+            <h2>Projects</h2>
+            <button id="newProjectButton" class="ghost-button">New Project</button>
+          </div>
+          <label class="field">
+            <span>Project name</span>
+            <input id="projectNameInput" type="text" placeholder="Weekend portraits" />
+          </label>
+          <div id="projectList" class="project-list"></div>
+        </section>
+
+        <section class="panel stack module-shell">
+          <div class="panel-head">
+            <h2>Mosaics</h2>
+            <button id="saveMosaicButton" class="ghost-button">Save Mosaic</button>
+          </div>
+          <label class="field">
+            <span>Mosaic title</span>
+            <input id="mosaicNameInput" type="text" placeholder="Cover shot" />
+          </label>
+          <div id="mosaicList" class="mosaic-list"></div>
+        </section>
+      </aside>
+
+      <main class="workspace">
+        <section class="hero panel module-shell">
+          <div class="hero-copy">
+            <p class="eyebrow">Control Surface</p>
+            <h2>Turn a portrait into a sculpted Lego build plan</h2>
+            <p>
+              Shape the mosaic with physical-feeling controls, choose the finish, and export a clean brick blueprint in studio print sizes.
+            </p>
+            <div class="hero-pills">
+              <span class="hero-pill">Original</span>
+              <span class="hero-pill">B&amp;W</span>
+              <span class="hero-pill">Retro</span>
+            </div>
+          </div>
+          <label class="upload-dropzone" for="imageUpload">
+            <input id="imageUpload" type="file" accept="image/*" hidden />
+            <span class="upload-knob" aria-hidden="true"></span>
+            <span>Load Photo</span>
+            <small>JPEG, PNG, WebP</small>
+          </label>
+        </section>
+
+        <section class="controls-grid">
+          <section class="panel stack module-shell">
+            <div class="panel-head">
+              <h2>Look</h2>
+              <span class="tiny-indicator" aria-hidden="true"></span>
+            </div>
+            <label class="field">
+              <span>Preset</span>
+              <select id="presetSelect">
+                <option value="original">Original Colors</option>
+                <option value="bw">Black & White</option>
+                <option value="retro">Retro</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>Brick density</span>
+              <input id="densityRange" type="range" min="20" max="120" value="52" />
+              <small id="densityLabel">52 studs across</small>
+            </label>
+            <label class="field">
+              <span>Smoothing</span>
+              <input id="smoothingRange" type="range" min="0" max="100" value="24" />
+              <small id="smoothingLabel">24% tonal smoothing</small>
+            </label>
+          </section>
+
+          <section class="panel stack module-shell">
+            <div class="panel-head">
+              <h2>Export Size</h2>
+              <span class="tiny-indicator" aria-hidden="true"></span>
+            </div>
+            <label class="field">
+              <span>Paper preset</span>
+              <select id="sizePresetSelect">
+                <option value="a5">A5 Portrait</option>
+                <option value="a4">A4 Portrait</option>
+                <option value="a4-landscape">A4 Landscape</option>
+                <option value="4x6">4x6 Photo</option>
+                <option value="custom">Custom</option>
+              </select>
+            </label>
+            <div class="field-row">
+              <label class="field">
+                <span>Width (mm)</span>
+                <input id="customWidthInput" type="number" min="50" step="1" value="148" />
+              </label>
+              <label class="field">
+                <span>Height (mm)</span>
+                <input id="customHeightInput" type="number" min="50" step="1" value="210" />
+              </label>
+            </div>
+            <label class="field">
+              <span>Export DPI</span>
+              <select id="dpiSelect">
+                <option value="150">150 DPI</option>
+                <option value="200">200 DPI</option>
+                <option value="300" selected>300 DPI</option>
+              </select>
+            </label>
+          </section>
+
+          <section class="panel stack module-shell">
+            <div class="panel-head">
+              <h2>Actions</h2>
+              <span class="tiny-indicator" aria-hidden="true"></span>
+            </div>
+            <button id="renderButton" class="primary-button">Render Mosaic</button>
+            <button id="downloadButton" class="secondary-button">Download PNG</button>
+            <button id="shareButton" class="secondary-button">Share Mosaic</button>
+            <div class="stats-grid">
+              <div>
+                <span class="stat-label">Palette</span>
+                <strong id="paletteLabel">Original Colors</strong>
+              </div>
+              <div>
+                <span class="stat-label">Brick Count</span>
+                <strong id="brickCountLabel">0</strong>
+              </div>
+              <div>
+                <span class="stat-label">Export</span>
+                <strong id="exportSizeLabel">A5 Portrait</strong>
+              </div>
+              <div>
+                <span class="stat-label">Status</span>
+                <strong id="statusLabel">Upload a photo to begin</strong>
+              </div>
+            </div>
+          </section>
+        </section>
+
+        <section class="canvas-grid">
+          <section class="panel canvas-panel module-shell">
+            <div class="panel-head">
+              <h2>Preview</h2>
+              <small>Live mosaic</small>
+            </div>
+            <div class="display-well">
+              <canvas id="previewCanvas" width="1200" height="1200"></canvas>
+            </div>
+          </section>
+
+          <section class="panel recipe-panel module-shell">
+            <div class="panel-head">
+              <h2>Brick Recipe</h2>
+              <small>Useful for recreating the build</small>
+            </div>
+            <div id="recipeList" class="recipe-list"></div>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <template id="projectItemTemplate">
+      <button class="list-card">
+        <span class="title"></span>
+        <small class="meta"></small>
+      </button>
+    </template>
+
+    <template id="mosaicItemTemplate">
+      <button class="list-card mosaic-card">
+        <span class="title"></span>
+        <small class="meta"></small>
+      </button>
+    </template>
+
+    <script src="/web/app.js"></script>
+  </body>
+  </html>
