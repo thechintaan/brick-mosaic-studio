@@ -151,6 +151,49 @@ input, select { font-family: inherit; color: inherit; }
   box-shadow: 0 0 0 3px rgba(23,178,106,0.3);
   animation: pulse 2s infinite;
 }
+
+/* ──────────── Project name pill (replaces location) ──────────── */
+.name-pill {
+  display: inline-flex; align-items: center; gap: 10px;
+  background: #0A0D12; color: #FFD500;
+  padding: 7px 8px 7px 14px; border-radius: 999px;
+  font: var(--text-sm); font-weight: 700;
+  box-shadow: 0 2px 0 rgba(0,0,0,0.3);
+  cursor: text;
+  max-width: 360px;
+}
+.name-pill .name-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--lego-red);
+  box-shadow: inset 0 -2px 0 var(--lego-red-deep);
+  flex-shrink: 0;
+}
+.name-pill .name-text {
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.name-pill .name-reroll {
+  display: inline-grid; place-items: center;
+  width: 24px; height: 24px;
+  border-radius: 999px;
+  background: rgba(255,213,0,0.12);
+  color: #FFD500;
+  transition: background 120ms ease, transform 120ms ease;
+  flex-shrink: 0;
+}
+.name-pill .name-reroll:hover { background: rgba(255,213,0,0.25); transform: rotate(-25deg); }
+.name-pill .name-input {
+  background: transparent;
+  border: 0; outline: 0;
+  color: #FFD500;
+  font: inherit;
+  font-weight: 700;
+  min-width: 160px;
+  padding: 0;
+  caret-color: #FFD500;
+}
 @keyframes pulse {
   0%, 100% { box-shadow: 0 0 0 3px rgba(23,178,106,0.4); }
   50% { box-shadow: 0 0 0 6px rgba(23,178,106,0); }

@@ -3,6 +3,15 @@
 
 const { useState, useEffect, useRef, useCallback, useMemo } = React;
 
+// Quirky name generator — two words, LEGO-toybox flavored.
+const QUIRKY_ADJ = ['Turbo','Crimson','Emerald','Neon','Mighty','Sparkly','Cosmic','Golden','Electric','Pocket','Brave','Tiny','Giant','Lucky','Dapper','Wobbly','Snazzy','Zesty','Mellow','Rusty','Velvet','Sunny','Frosty','Jazzy','Plucky','Breezy','Bouncy','Perky','Nimble','Loopy'];
+const QUIRKY_NOUN = ['Dragon','Kraken','Penguin','Robot','Panda','Falcon','Yeti','Griffin','Narwhal','Unicorn','Phoenix','Toucan','Hedgehog','Octopus','Platypus','Wombat','Mammoth','Walrus','Jellyfish','Chameleon','Cheetah','Badger','Ferret','Pufferfish','Manatee','Armadillo','Moose','Lynx','Otter','Parrot'];
+function makeQuirkyName() {
+  const a = QUIRKY_ADJ[Math.floor(Math.random() * QUIRKY_ADJ.length)];
+  const n = QUIRKY_NOUN[Math.floor(Math.random() * QUIRKY_NOUN.length)];
+  return `${a} ${n}`;
+}
+
 // Tweakable defaults — host may rewrite this block.
 const TWEAKS = /*EDITMODE-BEGIN*/{
   "canvasBg": "studio",
@@ -12,11 +21,11 @@ const TWEAKS = /*EDITMODE-BEGIN*/{
 }/*EDITMODE-END*/;
 
 const EXPORT_PRESETS = {
-  a5:           { label: 'A5',        w: 148, h: 210 },
-  a4:           { label: 'A4',        w: 210, h: 297 },
-  'a4-ls':      { label: 'A4 ↔',      w: 297, h: 210 },
-  '4x6':        { label: '4×6',       w: 102, h: 152 },
-  square:       { label: 'Square',    w: 200, h: 200 },
+  '1:1':     { label: '1:1',      w: 1,  h: 1,  hint: 'Square · IG post' },
+  '4:5':     { label: '4:5',      w: 4,  h: 5,  hint: 'Portrait · IG feed' },
+  '9:16':    { label: '9:16',     w: 9,  h: 16, hint: 'Story / Reel' },
+  '16:9':    { label: '16:9',     w: 16, h: 9,  hint: 'Landscape' },
+  original:  { label: 'Original', w: null, h: null, hint: 'Source photo ratio' },
 };
 
 function App() {
@@ -33,8 +42,9 @@ function App() {
   const [preset, setPreset] = useState('original');
   const [density, setDensity] = useState(48);
   const [smoothing, setSmoothing] = useState(24);
-  const [exportSize, setExportSize] = useState('a4');
-  const [dpi, setDpi] = useState(200);
+  const [exportSize, setExportSize] = useState('1:1');
+  const [projectName, setProjectName] = useState(() => makeQuirkyName());
+  const [editingName, setEditingName] = useState(false);
   const [showStuds, setShowStuds] = useState(TWEAKS.showStuds);
 
   // ── Tweaks ──
@@ -176,8 +186,16 @@ function App() {
   // Derive aspect ratio from current source / export
   const aspect = useMemo(() => {
     const p = EXPORT_PRESETS[exportSize];
-    return p ? p.w / p.h : 1;
-  }, [exportSize]);
+    if (!p) return 1;
+    if (p.w == null || p.h == null) {
+      // "Original" — derive from the captured source photo
+      if (!captured) return 1;
+      const w = captured.width || captured.naturalWidth || captured.videoWidth || 1;
+      const h = captured.height || captured.naturalHeight || captured.videoHeight || 1;
+      return w / h;
+    }
+    return p.w / p.h;
+  }, [exportSize, captured]);
 
   // Re-render mosaic whenever inputs change
   useEffect(() => {
@@ -281,7 +299,8 @@ function App() {
   function downloadAs(format, withFrame) {
     if (!canvasRef.current) return;
     const base = withFrame ? composeWithFrame(canvasRef.current, frameColor) : canvasRef.current;
-    const tag = `${studsWide}x${studsTall}${withFrame ? '-framed' : ''}`;
+    const slug = (projectName || 'mosaic').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+    const tag = `${slug}-${studsWide}x${studsTall}${withFrame ? '-framed' : ''}`;
     if (format === 'svg') {
       const png = base.toDataURL('image/png');
       const w = base.width, h = base.height;
@@ -334,17 +353,32 @@ function App() {
           <div className="brand-mark"><span /></div>
           <div>
             <div className="brand-name">Brick Mosaic Studio</div>
-            <div className="brand-sub">In-store build kiosk · Bay 3</div>
           </div>
         </div>
         <div className="rail-center">
-          <div className="location-pill">
-            <span className="dot" />
-            Flagship Store · Copenhagen
+          <div className="name-pill" onClick={() => setEditingName(true)} title="Click to rename">
+            <span className="name-dot" />
+            {editingName ? (
+              <input
+                autoFocus
+                value={projectName}
+                onChange={(e) => setProjectName(e.target.value)}
+                onBlur={() => setEditingName(false)}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === 'Escape') setEditingName(false); }}
+                className="name-input"
+              />
+            ) : (
+              <>
+                <span className="name-text">{projectName}</span>
+                <button className="name-reroll" onClick={(e) => { e.stopPropagation(); setProjectName(makeQuirkyName()); }} title="Random name" aria-label="Random name">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 0 1 15.5-6.3L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15.5 6.3L3 16"/><path d="M3 21v-5h5"/></svg>
+                </button>
+              </>
+            )}
           </div>
         </div>
         <div className="rail-right">
-          <button className="rail-btn" onClick={() => { setCaptured(null); setSourceMode('demo'); setDemoIndex(0); }}>
+          <button className="rail-btn" onClick={() => { setCaptured(null); setSourceMode('demo'); setDemoIndex(0); setProjectName(makeQuirkyName()); }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 0 1 15.5-6.3L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15.5 6.3L3 16"/><path d="M3 21v-5h5"/></svg>
             Restart
           </button>
@@ -579,9 +613,8 @@ function App() {
                   <div className="stat"><div className="k">Total bricks</div><div className="v">{total.toLocaleString()}</div></div>
                   <div className="stat"><div className="k">Unique colors</div><div className="v">{totalUnique}</div></div>
                   <div className="stat"><div className="k">Grid</div><div className="v">{studsWide||'—'}×{studsTall||'—'}</div></div>
-                  <div className="stat"><div className="k">Print</div><div className="v">{exportLabel}</div></div>
+                  <div className="stat"><div className="k">Format</div><div className="v">{exportLabel}</div></div>
                   <div className="stat"><div className="k">Palette</div><div className="v" style={{fontSize:14}}>{paletteLabel}</div></div>
-                  <div className="stat"><div className="k">Output</div><div className="v" style={{fontSize:14}}>{dpi} DPI</div></div>
                 </div>
                 <div className="toggle-row" style={{marginTop:10}}>
                   <button className={showStuds?'on':''} onClick={() => setShowStuds(true)}>Studs</button>
@@ -683,11 +716,6 @@ function App() {
               <button key={k} className={exportSize===k?'on':''} onClick={() => setExportSize(k)}>{v.label}</button>
             ))}
           </div>
-          <select className="dpi-select" value={dpi} onChange={e => setDpi(+e.target.value)}>
-            <option value={150}>150 DPI</option>
-            <option value={200}>200 DPI</option>
-            <option value={300}>300 DPI</option>
-          </select>
         </div>
         <div className="dock-center">
           <span style={{fontSize:13, color:'var(--fg-tertiary)'}}>
