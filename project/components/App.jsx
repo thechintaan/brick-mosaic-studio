@@ -49,6 +49,7 @@ function App() {
   const [statsOpen, setStatsOpen] = useState(true);
   const [leftOpen, setLeftOpen] = useState(true);
   const [rightOpen, setRightOpen] = useState(true);
+  const [dlOpen, setDlOpen] = useState(false);
 
   // Zoom + pan + 3D tilt for mosaic frame
   const [zoom, setZoom] = useState(1);
@@ -215,15 +216,91 @@ function App() {
     window.parent && window.parent.postMessage({ type: '__edit_mode_set_keys', edits: { [key]: val } }, '*');
   }
 
-  // Download PNG
-  function downloadPng() {
-    if (!canvasRef.current) return;
-    const url = canvasRef.current.toDataURL('image/png');
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `brick-mosaic-${studsWide}x${studsTall}.png`;
-    a.click();
+  // ── Download helpers ─────────────────────────────────────────
+  const FRAME_COLOR_MAP = {
+    red:    { base:'#E3000B', deep:'#B20008', hi:'#FF6A70' },
+    yellow: { base:'#FFD500', deep:'#E6B800', hi:'#FFEC66' },
+    blue:   { base:'#006CB7', deep:'#004F87', hi:'#4BA3E1' },
+    green:  { base:'#00A651', deep:'#007A3D', hi:'#3FD087' },
+    black:  { base:'#0A0D12', deep:'#000000', hi:'#3A3D42' },
+    white:  { base:'#F5F5F5', deep:'#CFCFCF', hi:'#FFFFFF' },
+  };
+
+  // Compose a new canvas with a LEGO brick frame around the mosaic.
+  function composeWithFrame(srcCanvas, frameKey='red') {
+    const c = FRAME_COLOR_MAP[frameKey] || FRAME_COLOR_MAP.red;
+    const pad = 64;
+    const out = document.createElement('canvas');
+    out.width = srcCanvas.width + pad * 2;
+    out.height = srcCanvas.height + pad * 2;
+    const ctx = out.getContext('2d');
+    // Base frame fill
+    ctx.fillStyle = c.base;
+    ctx.fillRect(0, 0, out.width, out.height);
+    // Outer highlight + inner shadow for depth
+    ctx.fillStyle = 'rgba(255,255,255,0.18)';
+    ctx.fillRect(0, 0, out.width, 4);
+    ctx.fillRect(0, 0, 4, out.height);
+    ctx.fillStyle = c.deep;
+    ctx.fillRect(0, out.height - 6, out.width, 6);
+    ctx.fillRect(out.width - 6, 0, 6, out.height);
+    // Studs around the border
+    const studR = 11;
+    const gap = 32;
+    function drawStud(x, y) {
+      const grad = ctx.createRadialGradient(x - 3, y - 4, 1, x, y, studR);
+      grad.addColorStop(0, c.hi);
+      grad.addColorStop(0.6, c.base);
+      grad.addColorStop(1, c.deep);
+      ctx.fillStyle = grad;
+      ctx.beginPath(); ctx.arc(x, y, studR, 0, Math.PI*2); ctx.fill();
+    }
+    // top & bottom rows (2 rows each)
+    for (let x = gap/2; x < out.width; x += gap) {
+      drawStud(x, 14); drawStud(x, 14 + 26);
+      drawStud(x, out.height - 14); drawStud(x, out.height - 14 - 26);
+    }
+    // left & right columns (2 columns each)
+    for (let y = pad + gap/2; y < out.height - pad; y += gap) {
+      drawStud(14, y); drawStud(14 + 26, y);
+      drawStud(out.width - 14, y); drawStud(out.width - 14 - 26, y);
+    }
+    // White mat behind the mosaic
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(pad - 6, pad - 6, srcCanvas.width + 12, srcCanvas.height + 12);
+    // Draw mosaic
+    ctx.drawImage(srcCanvas, pad, pad);
+    return out;
   }
+
+  function triggerDownload(dataUrl, filename) {
+    const a = document.createElement('a');
+    a.href = dataUrl; a.download = filename; a.click();
+  }
+
+  function downloadAs(format, withFrame) {
+    if (!canvasRef.current) return;
+    const base = withFrame ? composeWithFrame(canvasRef.current, frameColor) : canvasRef.current;
+    const tag = `${studsWide}x${studsTall}${withFrame ? '-framed' : ''}`;
+    if (format === 'svg') {
+      const png = base.toDataURL('image/png');
+      const w = base.width, h = base.height;
+      const svg = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+  <image width="${w}" height="${h}" href="${png}" image-rendering="pixelated" style="image-rendering: pixelated"/>
+</svg>`;
+      const blob = new Blob([svg], { type: 'image/svg+xml' });
+      triggerDownload(URL.createObjectURL(blob), `brick-mosaic-${tag}.svg`);
+    } else if (format === 'jpg') {
+      triggerDownload(base.toDataURL('image/jpeg', 0.95), `brick-mosaic-${tag}.jpg`);
+    } else {
+      triggerDownload(base.toDataURL('image/png'), `brick-mosaic-${tag}.png`);
+    }
+    setDlOpen(false);
+  }
+
+  // Back-compat quick PNG (used by the top "Save" rail button)
+  function downloadPng() { downloadAs('png', false); }
 
   async function sharePng() {
     if (!canvasRef.current) return;
@@ -233,7 +310,6 @@ function App() {
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
         try { await navigator.share({ files: [file], title: 'My Brick Mosaic' }); return; } catch {}
       }
-      // fallback: copy image to clipboard if possible
       try {
         await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
         alert('Mosaic copied to clipboard');
@@ -559,7 +635,7 @@ function App() {
                 </div>
               ) : (
                 <div className="jar-wall">
-                  {recipe.slice(0, 20).map((r) => (
+                  {recipe.slice(0, 40).map((r) => (
                     <window.BrickJar
                       key={r.color.name}
                       color={r.color.hex}
@@ -570,9 +646,9 @@ function App() {
                   ))}
                 </div>
               )}
-              {recipe.length > 20 && (
+              {recipe.length > 40 && (
                 <div style={{textAlign:'center', fontSize:12, color:'var(--fg-tertiary)', paddingTop:8}}>
-                  + {recipe.length - 20} smaller jars not shown
+                  + {recipe.length - 40} smaller jars not shown
                 </div>
               )}
             </div></>}
@@ -623,10 +699,35 @@ function App() {
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
             Share
           </button>
-          <button className="btn-brick blue" onClick={downloadPng} disabled={!captured}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            Download PNG
-          </button>
+          <div className="dl-split">
+            <button className="btn-brick blue dl-main" onClick={() => downloadAs('png', false)} disabled={!captured}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Download
+            </button>
+            <button className="btn-brick blue dl-caret" onClick={() => setDlOpen(o => !o)} disabled={!captured} aria-label="More download options">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            {dlOpen && (
+              <>
+                <div className="dl-backdrop" onClick={() => setDlOpen(false)} />
+                <div className="dl-menu" role="menu">
+                  <div className="dl-group">
+                    <div className="dl-group-label">Without frame</div>
+                    <button onClick={() => downloadAs('png', false)}>PNG <span className="dl-hint">transparent edges</span></button>
+                    <button onClick={() => downloadAs('jpg', false)}>JPG <span className="dl-hint">smaller size</span></button>
+                    <button onClick={() => downloadAs('svg', false)}>SVG <span className="dl-hint">scalable</span></button>
+                  </div>
+                  <div className="dl-sep" />
+                  <div className="dl-group">
+                    <div className="dl-group-label">With LEGO frame</div>
+                    <button onClick={() => downloadAs('png', true)}>PNG <span className="dl-hint">framed</span></button>
+                    <button onClick={() => downloadAs('jpg', true)}>JPG <span className="dl-hint">framed</span></button>
+                    <button onClick={() => downloadAs('svg', true)}>SVG <span className="dl-hint">framed</span></button>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </footer>
 

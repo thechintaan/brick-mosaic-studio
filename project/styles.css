@@ -561,49 +561,72 @@ input, select { font-family: inherit; color: inherit; }
 .stat .k { font: var(--text-xs); color: var(--fg-quaternary); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
 .stat .v { font: var(--text-lg); font-weight: 700; color: var(--fg-primary); font-variant-numeric: tabular-nums; }
 
-/* ──────────── RIGHT: Jar Wall ──────────── */
+/* ──────────── RIGHT: Brick list (compact row) ──────────── */
 .jar-wall {
+  display: flex; flex-direction: column;
+  gap: 4px;
+}
+
+.jar-row {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: 22px 1fr 56px auto;
+  align-items: center;
   gap: 10px;
-}
-
-.jar {
-  position: relative;
-  padding: 10px 10px 8px 10px;
-  background: var(--bg-primary);
-  border: 1px solid var(--border-secondary);
-  border-radius: var(--radius-xl);
-  display: flex; flex-direction: column; gap: 6px;
-  box-shadow: var(--shadow-xs);
-  transition: transform 120ms ease, box-shadow 120ms ease;
+  padding: 6px 10px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  font: var(--text-sm);
+  color: var(--fg-secondary);
+  text-align: left;
   cursor: pointer;
-}
-.jar:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
-
-.jar .jar-svg {
+  transition: background 120ms ease, border-color 120ms ease;
   width: 100%;
-  height: 120px;
-  display: block;
 }
-.jar .jar-label {
-  display: flex; align-items: center; justify-content: space-between; gap: 6px;
-  font: var(--text-xs); font-weight: 600; color: var(--fg-secondary);
-}
-.jar .jar-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.jar .jar-count {
-  font: var(--text-xs); font-weight: 800;
-  color: var(--fg-primary);
-  padding: 2px 7px;
-  border-radius: 999px;
-  background: var(--gray-100);
-  font-variant-numeric: tabular-nums;
-}
-.jar-swatch {
-  width: 10px; height: 10px; border-radius: 50%;
-  display: inline-block;
-  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.12);
+.jar-row:hover { background: var(--bg-secondary); border-color: var(--border-secondary); }
+
+.jar-stud {
+  position: relative;
+  width: 22px; height: 22px; border-radius: 50%;
+  box-shadow:
+    inset 0 -3px 0 rgba(0,0,0,0.2),
+    inset 0 1px 0 rgba(255,255,255,0.3),
+    0 1px 0 rgba(0,0,0,0.08);
   flex-shrink: 0;
+}
+.jar-stud .jar-stud-hi {
+  position: absolute;
+  top: 3px; left: 4px;
+  width: 8px; height: 5px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.6);
+  filter: blur(0.5px);
+}
+.jar-name {
+  font-weight: 600;
+  color: var(--fg-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.jar-bar {
+  position: relative;
+  height: 4px;
+  background: var(--gray-100);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.jar-bar-fill {
+  position: absolute; left: 0; top: 0; bottom: 0;
+  border-radius: 999px;
+}
+.jar-row .jar-count {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--fg-primary);
+  font-variant-numeric: tabular-nums;
+  min-width: 40px;
+  text-align: right;
 }
 
 /* ──────────── BOTTOM DOCK ──────────── */
@@ -946,14 +969,39 @@ input, select { font-family: inherit; color: inherit; }
 .col-left, .col-right {
   position: absolute; top: 16px; bottom: 16px; z-index: 30;
   width: 340px;
-  background: var(--bg-primary);
+  background: var(--bg-secondary);
   padding: 14px;
   border-radius: var(--radius-2xl);
   border: 1px solid var(--border-secondary);
   box-shadow: var(--shadow-xl);
-  display: flex; flex-direction: column; gap: 12px;
+  display: flex; flex-direction: column; gap: 14px;
   overflow-y: auto; overflow-x: hidden;
+  scroll-padding-top: 48px;
 }
+.col-left .col-head, .col-right .col-head {
+  position: sticky; top: -14px; z-index: 5;
+  margin: -14px -14px 0 -14px;
+  padding: 14px 16px 10px 16px;
+  background: linear-gradient(180deg, var(--bg-secondary) 70%, rgba(250,250,250,0));
+  backdrop-filter: blur(4px);
+}
+.col-left .panel, .col-right .panel {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-secondary);
+  box-shadow: 0 1px 2px rgba(16,24,40,0.04), 0 4px 8px -2px rgba(16,24,40,0.06);
+  flex-shrink: 0;
+}
+.col-left .panel .panel-head-btn,
+.col-right .panel .panel-head-btn {
+  background: var(--bg-primary);
+  border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;
+}
+.col-left .panel:not(.collapsed) .panel-head-btn,
+.col-right .panel:not(.collapsed) .panel-head-btn {
+  border-bottom: 1px solid var(--gray-100);
+}
+/* Give the column an end-of-scroll cushion */
+.col-left::after, .col-right::after { content: ''; display: block; height: 4px; flex-shrink: 0; }
 .col-left { left: 16px; }
 .col-right { right: 16px; width: 360px; }
 .col-center { padding: 0 16px; min-width: 0; }
@@ -985,6 +1033,56 @@ input, select { font-family: inherit; color: inherit; }
   background: var(--warning-500);
   margin-top: 5px; flex-shrink: 0;
 }
+
+/* ──────────── Download split button + menu ──────────── */
+.dl-split { position: relative; display: inline-flex; align-items: stretch; }
+.dl-split .dl-main { border-top-right-radius: 0; border-bottom-right-radius: 0; border-right: 0; }
+.dl-split .dl-caret {
+  padding: 11px 8px;
+  border-top-left-radius: 0; border-bottom-left-radius: 0;
+  border-left: 1px solid rgba(255,255,255,0.25);
+}
+.dl-backdrop {
+  position: fixed; inset: 0; z-index: 80; background: transparent;
+}
+.dl-menu {
+  position: absolute; right: 0; bottom: calc(100% + 8px);
+  width: 240px;
+  background: #fff;
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-2xl);
+  padding: 6px;
+  z-index: 90;
+  animation: tweaks-in 140ms ease-out;
+}
+.dl-group { display: flex; flex-direction: column; gap: 2px; padding: 4px; }
+.dl-group-label {
+  font: var(--text-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--fg-quaternary);
+  padding: 6px 8px 4px 8px;
+}
+.dl-menu button {
+  display: flex; align-items: center; justify-content: space-between;
+  width: 100%;
+  padding: 9px 10px;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-md);
+  font: var(--text-sm); font-weight: 700;
+  color: var(--fg-primary);
+  cursor: pointer;
+  text-align: left;
+}
+.dl-menu button:hover { background: var(--bg-secondary); }
+.dl-menu .dl-hint {
+  font-size: 11px; font-weight: 500;
+  color: var(--fg-tertiary);
+}
+.dl-sep { height: 1px; background: var(--border-secondary); margin: 4px 8px; }
 
 /* ──────────── helper: stud row for panel headings ──────────── */
 .stud-accent {
